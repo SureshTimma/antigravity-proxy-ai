@@ -5,7 +5,29 @@ A modern, sleek web interface for managing and chatting with Claude AI through t
 ![Next.js](https://img.shields.io/badge/Next.js-16.1.1-black?logo=next.js)
 ![React](https://img.shields.io/badge/React-19-blue?logo=react)
 ![Tailwind CSS](https://img.shields.io/badge/Tailwind-v4-38B2AC?logo=tailwind-css)
+![npm](https://img.shields.io/npm/v/antigravity-proxy-ai?color=red&logo=npm)
 ![License](https://img.shields.io/badge/License-MIT-green)
+
+## ⚡ Quick Start (Recommended)
+
+Run with a single command - no installation required:
+
+```bash
+npx antigravity-proxy-ai
+```
+
+Or install globally:
+
+```bash
+npm install -g antigravity-proxy-ai
+antigravity-proxy-ai
+```
+
+**That's it!** The app will:
+1. ✅ Install `antigravity-claude-proxy` if not present
+2. ✅ Start the proxy server
+3. ✅ Start the web UI
+4. ✅ Open your browser automatically
 
 ## ✨ Features
 
@@ -24,74 +46,40 @@ A modern, sleek web interface for managing and chatting with Claude AI through t
 
 ## 🛠️ Prerequisites
 
-Before running this app, you need:
+- **Node.js** v18 or higher
+- A Claude account (you'll be prompted to authenticate on first run)
 
-1. **Node.js** (v18 or higher)
-2. **Antigravity Claude Proxy** installed and configured
-   ```bash
-   npm install -g antigravity-claude-proxy
-   ```
-3. At least one authenticated Claude account
-
-## 🚀 Quick Start
-
-### 1. Clone the repository
+## 🔧 Manual Installation (For Development)
 
 ```bash
+# Clone the repository
 git clone https://github.com/SureshTimma/antigravity-proxy-ai.git
 cd antigravity-proxy-ai
-```
 
-### 2. Install dependencies
-
-```bash
+# Install dependencies
 npm install
-```
 
-### 3. Run the development server
-
-```bash
+# Run in development mode
 npm run dev
 ```
 
-### 4. Open in browser
-
-Navigate to [http://localhost:3000](http://localhost:3000)
-
-The app will automatically start the Antigravity Claude Proxy when you open a new chat.
-
-## 📦 Production Build
-
-```bash
-npm run build
-npm start
-```
-
-## 🏗️ Project Structure
+## 📦 How It Works
 
 ```
-antigravity-proxy-ai/
-├── app/
-│   ├── api/              # API routes for proxy communication
-│   │   ├── chat/         # Chat streaming endpoint
-│   │   └── proxy/        # Proxy management endpoints
-│   ├── components/       # React components
-│   │   ├── ChatInterface.js
-│   │   ├── Sidebar.js
-│   │   ├── SettingsView.js
-│   │   └── WebTerminal.js
-│   ├── lib/              # Utility functions
-│   ├── globals.css       # Global styles
-│   ├── layout.js         # Root layout
-│   └── page.js           # Main page
-├── public/               # Static assets
-├── server.js             # Custom server for Socket.io
-└── package.json
+┌─────────────────────────────────────────────────────────────┐
+│                    antigravity-proxy-ai                      │
+│                                                              │
+│   ┌──────────────┐         ┌──────────────────────────┐     │
+│   │   Web UI     │ ──────► │  antigravity-claude-proxy │     │
+│   │  :3000       │         │         :8080             │     │
+│   └──────────────┘         └──────────────────────────┘     │
+│         │                            │                       │
+│         ▼                            ▼                       │
+│   ┌──────────────┐         ┌──────────────────────────┐     │
+│   │   Browser    │         │      Claude API          │     │
+│   └──────────────┘         └──────────────────────────┘     │
+└─────────────────────────────────────────────────────────────┘
 ```
-
-## ⚙️ Configuration
-
-The app connects to the Antigravity Claude Proxy at `localhost:8080` by default. This is configured in the API routes.
 
 ## 🤝 Contributing
 

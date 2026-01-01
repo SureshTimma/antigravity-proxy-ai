@@ -1,12 +1,39 @@
 {
-  "name": "temp_project",
-  "version": "0.1.0",
-  "private": true,
+  "name": "antigravity-proxy-ai",
+  "version": "1.0.0",
+  "description": "Modern web interface for Claude AI through Antigravity Claude Proxy",
+  "author": "Suresh Timma",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/SureshTimma/antigravity-proxy-ai.git"
+  },
+  "homepage": "https://github.com/SureshTimma/antigravity-proxy-ai#readme",
+  "bugs": {
+    "url": "https://github.com/SureshTimma/antigravity-proxy-ai/issues"
+  },
+  "keywords": [
+    "claude",
+    "ai",
+    "proxy",
+    "anthropic",
+    "chatgpt",
+    "chat",
+    "web-ui",
+    "antigravity"
+  ],
+  "bin": {
+    "antigravity-proxy-ai": "./bin/cli.js"
+  },
   "scripts": {
     "dev": "node server.js",
     "build": "next build",
     "start": "NODE_ENV=production node server.js",
-    "lint": "eslint"
+    "lint": "eslint",
+    "postinstall": "node bin/postinstall.js || true"
+  },
+  "engines": {
+    "node": ">=18.0.0"
   },
   "dependencies": {
     "express": "^5.2.1",
