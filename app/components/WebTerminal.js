@@ -6,7 +6,7 @@ import { FitAddon } from 'xterm-addon-fit';
 import io from 'socket.io-client';
 import 'xterm/css/xterm.css';
 
-export default function WebTerminal({ onRef, initialCommand, isVisible, autoStartProxy = true }) {
+export default function WebTerminal({ onRef, initialCommand, isVisible, autoStartProxy = false }) {
   const terminalRef = useRef(null);
   const socketRef = useRef(null);
   const termRef = useRef(null);
@@ -105,12 +105,18 @@ export default function WebTerminal({ onRef, initialCommand, isVisible, autoStar
       term.write('\r\n\x1b[38;2;56;189;248m●\x1b[0m \x1b[38;2;148;163;184mConnected to backend terminal\x1b[0m\r\n\r\n');
       socket.emit('terminal:start');
 
-      // Auto-start the proxy server (only once)
+      // Auto-start the proxy server (only once) - disabled by default since CLI handles it
+      // This can be enabled for development or manual restart scenarios
       if (autoStartProxy && !proxyStartedRef.current) {
         proxyStartedRef.current = true;
         setTimeout(() => {
-          term.write('\x1b[38;2;56;189;248m›\x1b[0m \x1b[38;2;148;163;184mAuto-starting Antigravity Proxy...\x1b[0m\r\n\r\n');
-          socket.emit('terminal:input', 'powershell -ExecutionPolicy Bypass "antigravity-claude-proxy start"\r');
+          term.write('\x1b[38;2;56;189;248m›\x1b[0m \x1b[38;2;148;163;184mStarting Antigravity Proxy on port 8642...\x1b[0m\r\n\r\n');
+          // Use explicit PORT env to ensure proxy uses correct port
+          const isWindows = navigator.platform.toLowerCase().includes('win');
+          const cmd = isWindows 
+            ? '$env:PORT=8642; antigravity-claude-proxy start'
+            : 'PORT=8642 antigravity-claude-proxy start';
+          socket.emit('terminal:input', cmd + '\r');
         }, 500);
       }
 

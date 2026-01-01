@@ -84,12 +84,18 @@ setTimeout(() => {
         const shell = os.platform() === 'win32' ? 'powershell.exe' : 'bash';
         const args = os.platform() === 'win32' ? ['-ExecutionPolicy', 'Bypass'] : [];
         
+        // Create clean environment for PTY - remove conflicting PORT variable
+        // and set PROXY_PORT for antigravity-claude-proxy
+        const ptyEnv = { ...process.env };
+        delete ptyEnv.PORT; // Remove web server port so proxy uses its default or PROXY_PORT
+        ptyEnv.PROXY_PORT = proxyPort.toString();
+        
         term = pty.spawn(shell, args, {
           name: 'xterm-color',
           cols: 80,
           rows: 24,
           cwd: process.cwd(),
-          env: { ...process.env, PROXY_PORT: proxyPort.toString() }
+          env: ptyEnv
         });
 
         // Send output to client
