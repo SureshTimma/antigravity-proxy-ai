@@ -1,6 +1,6 @@
 {
   "name": "antigravity-proxy-ai",
-  "version": "1.0.7",
+  "version": "1.0.8",
   "description": "Modern web interface for Claude AI through Antigravity Claude Proxy",
   "author": "Suresh Timma",
   "license": "MIT",
@@ -40,11 +40,11 @@
     "autoprefixer": "^10.4.23",
     "express": "^5.2.1",
     "lucide-react": "^0.562.0",
-    "next": "16.1.1",
+    "next": "14.2.35",
     "node-pty": "^1.1.0",
     "postcss": "^8.5.6",
-    "react": "19.2.3",
-    "react-dom": "19.2.3",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
     "react-markdown": "^10.1.0",
     "socket.io": "^4.8.3",
     "socket.io-client": "^4.8.3",
@@ -54,7 +54,7 @@
     "xterm-addon-fit": "^0.8.0"
   },
   "devDependencies": {
-    "eslint": "^9",
-    "eslint-config-next": "16.1.1"
+    "eslint": "^8",
+    "eslint-config-next": "14.2.28"
   }
 }
