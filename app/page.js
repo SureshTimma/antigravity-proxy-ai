@@ -24,6 +24,7 @@ const WebTerminal = dynamic(() => import('./components/WebTerminal'), {
 
 export default function Home() {
   const terminalRef = useRef(null);
+  const connectionCheckRef = useRef(null); // Prevent duplicate connection checks
   const [isConnected, setIsConnected] = useState(false);
   const [isChecking, setIsChecking] = useState(true);
   const [activeView, setActiveView] = useState('chat');
@@ -31,6 +32,16 @@ export default function Home() {
   const [isModelDropdownOpen, setIsModelDropdownOpen] = useState(false);
   const [models, setModels] = useState([]);
   const [proxyPort, setProxyPort] = useState(8642);
+  const [terminalOutput, setTerminalOutput] = useState('');
+  
+  // Handle terminal output for pattern detection
+  const handleTerminalOutput = useCallback((data) => {
+    setTerminalOutput(prev => {
+      // Keep only last 2000 chars to avoid memory issues
+      const newOutput = prev + data;
+      return newOutput.slice(-2000);
+    });
+  }, []);
   
   // Chat history state
   const [activeChatId, setActiveChatId] = useState(null);
@@ -49,7 +60,7 @@ export default function Home() {
   }, []);
 
   // Check if proxy server is running and fetch models
-  const checkProxyConnection = useCallback(async () => {
+  const checkProxyConnection = useCallback(async (retryCount = 0) => {
     setIsChecking(true);
     try {
       const controller = new AbortController();
@@ -64,8 +75,14 @@ export default function Home() {
       
       if (!healthResponse.ok) {
         clearTimeout(timeoutId);
+        // Only retry once for initial check - terminal output detection handles new starts
+        if (retryCount < 1) {
+          setTimeout(() => checkProxyConnection(retryCount + 1), 1000);
+          return;
+        }
         setIsConnected(false);
         setIsChecking(false);
+        connectionCheckRef.current = false;
         return;
       }
       
@@ -109,15 +126,47 @@ export default function Home() {
           }
         }
         setIsConnected(true);
+        connectionCheckRef.current = false;
       } else {
+        // Only retry once for initial check
+        if (retryCount < 1) {
+          setTimeout(() => checkProxyConnection(retryCount + 1), 1000);
+          return;
+        }
         setIsConnected(false);
+        connectionCheckRef.current = false;
       }
     } catch (error) {
+      // Only retry once for initial check
+      if (retryCount < 1) {
+        setTimeout(() => checkProxyConnection(retryCount + 1), 1000);
+        return;
+      }
       setIsConnected(false);
+      connectionCheckRef.current = false;
     } finally {
       setIsChecking(false);
     }
   }, [selectedModel, proxyPort]);
+
+  // Watch terminal output for proxy server startup success
+  useEffect(() => {
+    if (!terminalOutput) return;
+    
+    // Detect successful proxy server startup
+    if (terminalOutput.includes('Server started successfully') || 
+        terminalOutput.includes('Server running at: http://localhost:')) {
+      // Only trigger if we're not already connected and not already checking
+      if (!isConnected && !connectionCheckRef.current) {
+        console.log('[page.js] Detected proxy server started, checking connection...');
+        connectionCheckRef.current = true;
+        // Small delay to ensure server is fully ready
+        setTimeout(() => {
+          checkProxyConnection(0);
+        }, 500);
+      }
+    }
+  }, [terminalOutput, isConnected, checkProxyConnection]);
 
   // Format model ID to display name
   const formatModelName = (modelId) => {
@@ -238,11 +287,18 @@ export default function Home() {
     setActiveChatMessages([]);
     setActiveView('chat');
     
-    // Run start command in terminal background
+    // Clear terminal output for fresh detection, reset connection state
+    setTerminalOutput('');
+    connectionCheckRef.current = false;
+    
+    // If not connected, restart proxy; otherwise just ensure it's running
     if (terminalRef.current) {
       terminalRef.current.write('\x03'); // Cancel any running command
       setTimeout(() => {
-        terminalRef.current.runCommand('powershell -ExecutionPolicy Bypass "antigravity-claude-proxy start"');
+        // Always restart proxy to ensure clean state
+        setIsConnected(false);
+        terminalRef.current.runCommand('$env:PORT=8642; antigravity-claude-proxy start');
+        // Terminal output detection will trigger connection check when server is ready
       }, 300);
     }
   }, []);
@@ -254,11 +310,33 @@ export default function Home() {
       setSelectedModel(chat.model);
     }
     setActiveView('chat');
-  }, []);
+    
+    // Ensure proxy is running for this chat
+    if (!isConnected && terminalRef.current) {
+      // Clear terminal output for fresh detection, reset connection state
+      setTerminalOutput('');
+      connectionCheckRef.current = false;
+      
+      terminalRef.current.write('\x03'); // Cancel any running command
+      setTimeout(() => {
+        terminalRef.current.runCommand('$env:PORT=8642; antigravity-claude-proxy start');
+        // Terminal output detection will trigger connection check when server is ready
+      }, 300);
+    }
+  }, [isConnected]);
 
   const handleAccountAction = useCallback((command, action) => {
     // Run command in terminal but don't switch view
     if (terminalRef.current) {
+      // Clear output buffer for fresh pattern detection
+      setTerminalOutput('');
+      
+      // If restarting proxy, reset connection state for fresh detection
+      if (action === 'start') {
+        setIsConnected(false);
+        connectionCheckRef.current = false;
+      }
+      
       // First, stop any running process with Ctrl+C
       terminalRef.current.sendInput('\x03');
       
@@ -406,11 +484,14 @@ export default function Home() {
               onClick={() => {
                 // Terminate terminal and restart proxy
                 if (terminalRef.current) {
+                  // Reset connection state and clear terminal output to allow fresh detection
+                  setIsConnected(false);
+                  setTerminalOutput(''); // Clear so we can detect fresh server start
+                  connectionCheckRef.current = false;
                   terminalRef.current.write('\x03'); // Ctrl+C to stop
                   setTimeout(() => {
-                    terminalRef.current.runCommand('powershell -ExecutionPolicy Bypass "antigravity-claude-proxy start"');
-                    // Check connection after a delay
-                    setTimeout(() => checkProxyConnection(), 3000);
+                    terminalRef.current.runCommand('$env:PORT=8642; antigravity-claude-proxy start');
+                    // Terminal output detection will trigger connection check when server is ready
                   }, 500);
                 }
               }}
@@ -447,8 +528,8 @@ export default function Home() {
             <div className="h-[calc(100%-40px)]">
               <WebTerminal
                 isVisible={true}
-                autoStartProxy={true}
                 onRef={(ref) => (terminalRef.current = ref)}
+                onOutput={handleTerminalOutput}
               />
             </div>
           </div>
@@ -468,6 +549,8 @@ export default function Home() {
             chatId={activeChatId}
             model={selectedModel}
             initialMessages={activeChatMessages}
+            isConnected={isConnected}
+            isCheckingConnection={isChecking}
           />
         )}
 
@@ -476,6 +559,7 @@ export default function Home() {
           <SettingsView
             onAccountAction={handleAccountAction}
             onSendInput={handleSendTerminalInput}
+            terminalOutput={terminalOutput}
             onStartChatting={() => {
               setActiveView('chat');
               handleNewChat();

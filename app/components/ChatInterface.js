@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { Send, User, Bot, Loader2, Square, Sparkles, RotateCcw, Copy, Check, ChevronDown, ChevronRight } from 'lucide-react';
+import { Send, User, Bot, Loader2, Square, Sparkles, RotateCcw, Copy, Check, ChevronDown, ChevronRight, AlertCircle } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import { updateChatMessages, createChat, chatExists } from '../lib/chatHistory';
 
@@ -9,7 +9,9 @@ export default function ChatInterface({
   model = 'claude-sonnet-4-5-thinking',
   chatId = null,
   initialMessages = [],
-  onMessagesChange = null 
+  onMessagesChange = null,
+  isConnected = true,
+  isCheckingConnection = false
 }) {
   const [messages, setMessages] = useState(initialMessages);
   const [input, setInput] = useState('');
@@ -76,7 +78,7 @@ export default function ChatInterface({
 
   const sendMessage = async (messageText = null) => {
     const textToSend = messageText || input.trim();
-    if (!textToSend || isLoading) return;
+    if (!textToSend || isLoading || !isConnected) return;
 
     const userMessage = { role: 'user', content: textToSend, id: Date.now() };
     const newMessages = [...messages, userMessage];
@@ -186,7 +188,10 @@ export default function ChatInterface({
   const handleKeyDown = (e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
-      sendMessage();
+      // Only send if connected
+      if (isConnected) {
+        sendMessage();
+      }
     }
   };
 
@@ -203,7 +208,11 @@ export default function ChatInterface({
       {/* Messages Area */}
       <div className="flex-1 overflow-y-auto min-h-0">
         {messages.length === 0 ? (
-          <WelcomeScreen onSuggestionClick={(text) => sendMessage(text)} />
+          <WelcomeScreen 
+            onSuggestionClick={(text) => sendMessage(text)} 
+            isConnected={isConnected}
+            isCheckingConnection={isCheckingConnection}
+          />
         ) : (
           <div className="w-[80%] max-w-5xl mx-auto py-6 px-4 space-y-6">
             {messages.map((message, index) => (
@@ -267,6 +276,20 @@ export default function ChatInterface({
       {/* Input Area */}
       <div className="border-t border-border bg-card/80 backdrop-blur-xl p-4">
         <div className="w-[80%] max-w-5xl mx-auto">
+          {/* Connection warning banner */}
+          {!isConnected && !isCheckingConnection && (
+            <div className="mb-3 flex items-center gap-2 px-3 py-2 rounded-lg bg-destructive/10 border border-destructive/20 text-destructive text-sm">
+              <AlertCircle size={16} />
+              <span>Proxy not connected. Starting proxy server...</span>
+            </div>
+          )}
+          {isCheckingConnection && (
+            <div className="mb-3 flex items-center gap-2 px-3 py-2 rounded-lg bg-muted border border-border text-muted-foreground text-sm">
+              <Loader2 size={16} className="animate-spin" />
+              <span>Connecting to proxy server...</span>
+            </div>
+          )}
+          
           <div className="relative flex items-end gap-2">
             <div className="flex-1 relative">
               <textarea
@@ -274,9 +297,9 @@ export default function ChatInterface({
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={handleKeyDown}
-                placeholder="Send a message..."
+                placeholder={!isConnected ? "Waiting for proxy connection..." : "Send a message..."}
                 rows={1}
-                disabled={isLoading}
+                disabled={isLoading || !isConnected}
                 className="w-full min-h-[48px] max-h-[200px] resize-none pr-12 px-4 py-3 rounded-lg border border-border bg-muted focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary disabled:opacity-50 text-sm"
               />
 
@@ -291,9 +314,9 @@ export default function ChatInterface({
               ) : (
                 <button
                   onClick={() => sendMessage()}
-                  disabled={!input.trim()}
+                  disabled={!input.trim() || !isConnected}
                   className="absolute right-1 bottom-1 h-9 w-9 flex items-center justify-center rounded-md text-primary hover:bg-primary/10 transition-all duration-150 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer active:scale-90"
-                  title="Send message"
+                  title={!isConnected ? "Waiting for proxy connection" : "Send message"}
                 >
                   <Send size={16} />
                 </button>
@@ -321,7 +344,7 @@ export default function ChatInterface({
   );
 }
 
-function WelcomeScreen({ onSuggestionClick }) {
+function WelcomeScreen({ onSuggestionClick, isConnected = true, isCheckingConnection = false }) {
   const suggestions = [
     'Explain quantum computing in simple terms',
     'Write a Python function to sort a list',
@@ -339,12 +362,34 @@ function WelcomeScreen({ onSuggestionClick }) {
         Chat with Claude models through the Antigravity proxy. Start a conversation below.
       </p>
 
+      {/* Connection status for welcome screen */}
+      {!isConnected && (
+        <div className="mb-6 flex items-center gap-2 px-4 py-2 rounded-lg bg-muted border border-border text-muted-foreground text-sm">
+          {isCheckingConnection ? (
+            <>
+              <Loader2 size={16} className="animate-spin" />
+              <span>Connecting to proxy server...</span>
+            </>
+          ) : (
+            <>
+              <AlertCircle size={16} className="text-destructive" />
+              <span>Waiting for proxy connection...</span>
+            </>
+          )}
+        </div>
+      )}
+
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-w-lg w-full">
         {suggestions.map((prompt, i) => (
           <button
             key={i}
-            onClick={() => onSuggestionClick(prompt)}
-            className="h-auto p-4 text-left text-sm text-muted-foreground hover:text-foreground border border-border rounded-lg hover:bg-muted hover:border-muted-foreground/30 transition-all duration-150 cursor-pointer active:scale-[0.98]"
+            onClick={() => isConnected && onSuggestionClick(prompt)}
+            disabled={!isConnected}
+            className={`h-auto p-4 text-left text-sm text-muted-foreground border border-border rounded-lg transition-all duration-150 ${
+              isConnected 
+                ? 'hover:text-foreground hover:bg-muted hover:border-muted-foreground/30 cursor-pointer active:scale-[0.98]' 
+                : 'opacity-50 cursor-not-allowed'
+            }`}
           >
             {prompt}
           </button>

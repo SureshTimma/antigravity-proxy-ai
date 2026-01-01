@@ -72,23 +72,22 @@ function startProxy(port) {
   
   const isWindows = process.platform === 'win32';
   
-  // The proxy uses PORT environment variable, not --port flag
-  const env = { ...process.env, PORT: port.toString() };
-  
   let proxy;
   if (isWindows) {
-    // On Windows, use windowsHide to prevent terminal window from appearing
-    proxy = spawn('cmd.exe', ['/c', 'antigravity-claude-proxy start'], {
+    // On Windows, set PORT env and use powershell for proper env handling
+    proxy = spawn('powershell.exe', [
+      '-ExecutionPolicy', 'Bypass',
+      '-Command', `$env:PORT='${port}'; antigravity-claude-proxy start`
+    ], {
       stdio: 'ignore',
       detached: false,
       windowsHide: true,
-      env,
     });
   } else {
-    proxy = spawn('sh', ['-c', 'antigravity-claude-proxy start'], {
+    // On Unix, inline env var works
+    proxy = spawn('sh', ['-c', `PORT=${port} antigravity-claude-proxy start`], {
       stdio: 'ignore',
       detached: true,
-      env,
     });
     proxy.unref();
   }

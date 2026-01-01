@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { 
   Settings, 
   UserPlus, 
@@ -21,10 +21,13 @@ import {
   Package
 } from 'lucide-react';
 
-export default function SettingsView({ onAccountAction, onSendInput, onStartChatting }) {
+export default function SettingsView({ onAccountAction, onSendInput, terminalOutput, onStartChatting }) {
   const [accounts, setAccounts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState(null);
+  
+  // Track what we're waiting for
+  const pendingActionRef = useRef(null);
   
   // Account management states
   const [showRemoveList, setShowRemoveList] = useState(false);
@@ -108,6 +111,42 @@ export default function SettingsView({ onAccountAction, onSendInput, onStartChat
     fetchVersionInfo();
   }, [fetchAccounts, fetchLimits, fetchVersionInfo]);
 
+  // Pattern detection for terminal output
+  useEffect(() => {
+    if (!terminalOutput || !pendingActionRef.current) return;
+    
+    const action = pendingActionRef.current;
+    
+    // Detect menu prompt: "(a)dd new, (r)emove existing, or (f)resh start? [a/r/f]:"
+    if (action === 'wait_for_menu_add' && terminalOutput.includes('[a/r/f]')) {
+      pendingActionRef.current = null;
+      onSendInput('a');
+      setIsSettingUp(false);
+      setIsWaitingForAuth(true);
+      setMessage(null);
+      setNewlyAddedAccount(null);
+    }
+    
+    if (action === 'wait_for_menu_remove' && terminalOutput.includes('[a/r/f]')) {
+      pendingActionRef.current = null;
+      onSendInput('r');
+    }
+    
+    // Direct remove: first wait for menu, send 'r', then wait for account number prompt
+    if (action === 'wait_for_menu_remove_direct' && terminalOutput.includes('[a/r/f]')) {
+      pendingActionRef.current = 'wait_for_account_number';
+      onSendInput('r');
+    }
+    
+    // Detect "Enter account number" prompt for direct remove
+    if (action === 'wait_for_account_number' && terminalOutput.includes('Enter account number')) {
+      pendingActionRef.current = null;
+      setIsSettingUp(false);
+      setShowConfirmation(true);
+    }
+    
+  }, [terminalOutput, onSendInput]);
+
   // Polling for auth detection (add)
   useEffect(() => {
     if (!isWaitingForAuth) return;
@@ -135,8 +174,16 @@ export default function SettingsView({ onAccountAction, onSendInput, onStartChat
               setNewlyAddedAccount(newAccount);
             }
             
-            // Send Ctrl+C to terminate terminal
-            onSendInput('\x03');
+            // Send 'n' to decline "Add another?" prompt, then restart proxy
+            onSendInput('n');
+            setTimeout(() => {
+              // Restart proxy with correct port
+              const isWindows = navigator.platform.toLowerCase().includes('win');
+              const cmd = isWindows 
+                ? '$env:PORT=8642; antigravity-claude-proxy start'
+                : 'PORT=8642 antigravity-claude-proxy start';
+              onAccountAction(cmd, 'start');
+            }, 1000);
             
             setAccounts(currentAccounts);
             setIsWaitingForAuth(false);
@@ -187,8 +234,16 @@ export default function SettingsView({ onAccountAction, onSendInput, onStartChat
             const removedEmail = pendingRemoveAccount?.email;
             setRemovedAccount(pendingRemoveAccount);
             
-            // Send Ctrl+C to terminate terminal
-            onSendInput('\\x03');
+            // Send 'n' to decline "Remove another?" prompt, then restart proxy
+            onSendInput('n');
+            setTimeout(() => {
+              // Restart proxy with correct port
+              const isWindows = navigator.platform.toLowerCase().includes('win');
+              const cmd = isWindows 
+                ? '$env:PORT=8642; antigravity-claude-proxy start'
+                : 'PORT=8642 antigravity-claude-proxy start';
+              onAccountAction(cmd, 'start');
+            }, 1000);
             
             setAccounts(currentAccounts);
             setIsWaitingForRemove(false);
@@ -222,44 +277,57 @@ export default function SettingsView({ onAccountAction, onSendInput, onStartChat
     return () => clearInterval(intervalId);
   }, [isWaitingForRemove, initialAccountCount, pendingRemoveAccount, fetchAccounts]);
 
+  // Reset all states for clean account operations
+  const resetAccountStates = useCallback(() => {
+    setShowRemoveList(false);
+    setShowConfirmation(false);
+    setShowRemoveAnother(false);
+    setShowAddAnother(false);
+    setIsWaitingForAuth(false);
+    setIsWaitingForRemove(false);
+    setIsSettingUp(false);
+    setPendingRemoveAccount(null);
+    setNewlyAddedAccount(null);
+    setRemovedAccount(null);
+    pendingActionRef.current = null;
+  }, []);
+
   const handleAddAccount = () => {
+    // Clean up any previous operation state
+    resetAccountStates();
+    
     setInitialAccountCount(accounts.length);
     setIsSettingUp(true);
-    onAccountAction('powershell -ExecutionPolicy Bypass "antigravity-claude-proxy accounts add"', 'add');
-    
-    setTimeout(() => {
-      onSendInput('a');
-      setIsSettingUp(false);
-      setIsWaitingForAuth(true);
-      setMessage(null);
-      setNewlyAddedAccount(null);
-    }, 1500);
+    // Set pending action for pattern detection
+    pendingActionRef.current = 'wait_for_menu_add';
+    // Run the accounts command - onAccountAction will Ctrl+C first, then run command after 500ms
+    onAccountAction('antigravity-claude-proxy accounts', 'add');
   };
 
   const handleRemoveAccount = () => {
+    // Clean up any previous operation state
+    resetAccountStates();
+    
     setShowRemoveList(true);
     setRemovedAccount(null);
-    onAccountAction('powershell -ExecutionPolicy Bypass "antigravity-claude-proxy accounts add"', 'remove');
-    
-    setTimeout(() => {
-      onSendInput('r');
-    }, 1500);
+    // Set pending action for pattern detection
+    pendingActionRef.current = 'wait_for_menu_remove';
+    onAccountAction('antigravity-claude-proxy accounts', 'remove');
   };
 
   // Direct removal - click trash icon on an account
   const handleDirectRemove = (accountNumber, email) => {
+    // Clean up any previous operation state
+    resetAccountStates();
+    
     setPendingRemoveAccount({ number: accountNumber, email });
     setRemovedAccount(null);
     setIsSettingUp(true);
     
+    // Set pending action for pattern detection - will first wait for menu, then for account number prompt
+    pendingActionRef.current = 'wait_for_menu_remove_direct';
     // Start the remove flow in terminal
-    onAccountAction('powershell -ExecutionPolicy Bypass "antigravity-claude-proxy accounts add"', 'remove');
-    
-    setTimeout(() => {
-      onSendInput('r');
-      setIsSettingUp(false);
-      setShowConfirmation(true);
-    }, 1500);
+    onAccountAction('antigravity-claude-proxy accounts', 'remove');
   };
 
   const handleSelectAccountToRemove = (accountNumber, email) => {
@@ -294,9 +362,16 @@ export default function SettingsView({ onAccountAction, onSendInput, onStartChat
       setRemovedAccount(null);
     } else {
       onSendInput('n');
-      // Send Ctrl+C to interrupt terminal
+      // Send Ctrl+C to interrupt terminal, then restart proxy
       setTimeout(() => {
         onSendInput('\x03');
+        setTimeout(() => {
+          const isWindows = navigator.platform.toLowerCase().includes('win');
+          const cmd = isWindows 
+            ? '$env:PORT=8642; antigravity-claude-proxy start'
+            : 'PORT=8642 antigravity-claude-proxy start';
+          onAccountAction(cmd, 'start');
+        }, 500);
       }, 300);
       setShowRemoveAnother(false);
       setPendingRemoveAccount(null);
@@ -314,9 +389,16 @@ export default function SettingsView({ onAccountAction, onSendInput, onStartChat
       setNewlyAddedAccount(null);
     } else {
       onSendInput('n');
-      // Send Ctrl+C to interrupt terminal
+      // Send Ctrl+C to interrupt terminal, then restart proxy
       setTimeout(() => {
         onSendInput('\x03');
+        setTimeout(() => {
+          const isWindows = navigator.platform.toLowerCase().includes('win');
+          const cmd = isWindows 
+            ? '$env:PORT=8642; antigravity-claude-proxy start'
+            : 'PORT=8642 antigravity-claude-proxy start';
+          onAccountAction(cmd, 'start');
+        }, 500);
       }, 300);
       setShowAddAnother(false);
       setNewlyAddedAccount(null);
@@ -325,16 +407,19 @@ export default function SettingsView({ onAccountAction, onSendInput, onStartChat
   };
 
   const handleBackToAccounts = () => {
-    setShowRemoveList(false);
-    setShowConfirmation(false);
-    setShowRemoveAnother(false);
-    setShowAddAnother(false);
-    setIsWaitingForAuth(false);
-    setIsWaitingForRemove(false);
-    setIsSettingUp(false);
-    setPendingRemoveAccount(null);
-    setNewlyAddedAccount(null);
-    setRemovedAccount(null);
+    // Reset all account operation states
+    resetAccountStates();
+    
+    // Send Ctrl+C to cancel any pending operation, then restart proxy
+    onSendInput('\x03');
+    setTimeout(() => {
+      const isWindows = navigator.platform.toLowerCase().includes('win');
+      const cmd = isWindows 
+        ? '$env:PORT=8642; antigravity-claude-proxy start'
+        : 'PORT=8642 antigravity-claude-proxy start';
+      onAccountAction(cmd, 'start');
+    }, 500);
+    
     fetchAccounts();
   };
 
