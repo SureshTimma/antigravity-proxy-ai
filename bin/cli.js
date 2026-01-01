@@ -153,6 +153,7 @@ async function startWebUI(webPort, proxyPort) {
     stdio: 'inherit',
     env: {
       ...process.env,
+      NODE_ENV: 'production',
       PORT: webPort.toString(),
       PROXY_PORT: proxyPort.toString(),
     },
