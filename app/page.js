@@ -6,6 +6,7 @@ import ControlPanel from './components/ControlPanel';
 import Sidebar from './components/Sidebar';
 import ChatInterface from './components/ChatInterface';
 import SettingsView from './components/SettingsView';
+import UpdateNotification from './components/UpdateNotification';
 import { Terminal, Circle, MessageSquare, ChevronDown, Settings } from 'lucide-react';
 import { createChat, getChat, getRecentChats, updateChatModel, generateChatId, chatExists } from './lib/chatHistory';
 
@@ -275,6 +276,19 @@ export default function Home() {
     }
   }, []);
 
+  // Handler for running update commands in terminal
+  const handleRunUpdateCommand = useCallback((command) => {
+    if (terminalRef.current) {
+      // Switch to terminal view to show the update progress
+      setActiveView('terminal');
+      // Clear and run the update command
+      terminalRef.current.write('\x03'); // Cancel any running command
+      setTimeout(() => {
+        terminalRef.current.runCommand(command);
+      }, 300);
+    }
+  }, []);
+
   const handleSidebarSelect = (type) => {
     if (type === 'chat') {
       setActiveView('chat');
@@ -469,6 +483,9 @@ export default function Home() {
           />
         )}
       </div>
+
+      {/* Update Notification */}
+      <UpdateNotification onRunCommand={handleRunUpdateCommand} />
     </div>
   );
 }

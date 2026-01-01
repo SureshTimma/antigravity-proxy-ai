@@ -16,7 +16,9 @@ import {
   Info,
   BarChart3,
   Clock,
-  ChevronDown
+  ChevronDown,
+  Download,
+  Package
 } from 'lucide-react';
 
 export default function SettingsView({ onAccountAction, onSendInput, onStartChatting }) {
@@ -44,6 +46,10 @@ export default function SettingsView({ onAccountAction, onSendInput, onStartChat
   const [limitsLoading, setLimitsLoading] = useState(false);
   const [limitsError, setLimitsError] = useState(null);
   const [expandedAccount, setExpandedAccount] = useState(null);
+
+  // Version/Update states
+  const [versionInfo, setVersionInfo] = useState(null);
+  const [checkingUpdates, setCheckingUpdates] = useState(false);
 
   const fetchAccounts = useCallback(async () => {
     setLoading(true);
@@ -82,11 +88,25 @@ export default function SettingsView({ onAccountAction, onSendInput, onStartChat
     }
   }, []);
 
-  // Fetch accounts and limits on mount
+  const fetchVersionInfo = useCallback(async () => {
+    setCheckingUpdates(true);
+    try {
+      const response = await fetch('/api/updates');
+      const data = await response.json();
+      setVersionInfo(data);
+    } catch (error) {
+      console.error('Failed to check for updates:', error);
+    } finally {
+      setCheckingUpdates(false);
+    }
+  }, []);
+
+  // Fetch accounts, limits, and version info on mount
   useEffect(() => {
     fetchAccounts();
     fetchLimits();
-  }, [fetchAccounts, fetchLimits]);
+    fetchVersionInfo();
+  }, [fetchAccounts, fetchLimits, fetchVersionInfo]);
 
   // Polling for auth detection (add)
   useEffect(() => {
@@ -741,11 +761,73 @@ export default function SettingsView({ onAccountAction, onSendInput, onStartChat
             </div>
           </div>
           
-          <div className="p-5 space-y-3">
-            <div className="flex items-center justify-between text-sm">
-              <span className="text-muted-foreground">Version</span>
-              <span className="font-mono">v4.1.0</span>
-            </div>
+          <div className="p-5 space-y-4">
+            {/* Version Info */}
+            {versionInfo ? (
+              <>
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-muted-foreground flex items-center gap-2">
+                      <Package size={14} />
+                      Proxy AI (UI)
+                    </span>
+                    <div className="flex items-center gap-2">
+                      <span className="font-mono">{versionInfo.packages?.['antigravity-proxy-ai']?.installed || 'N/A'}</span>
+                      {versionInfo.packages?.['antigravity-proxy-ai']?.updateAvailable && (
+                        <span className="px-2 py-0.5 text-xs bg-green-500/20 text-green-500 rounded-full">
+                          {versionInfo.packages?.['antigravity-proxy-ai']?.latest} available
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-muted-foreground flex items-center gap-2">
+                      <Package size={14} />
+                      Claude Proxy (CLI)
+                    </span>
+                    <div className="flex items-center gap-2">
+                      <span className="font-mono">{versionInfo.packages?.['antigravity-claude-proxy']?.installed || 'N/A'}</span>
+                      {versionInfo.packages?.['antigravity-claude-proxy']?.updateAvailable && (
+                        <span className="px-2 py-0.5 text-xs bg-green-500/20 text-green-500 rounded-full">
+                          {versionInfo.packages?.['antigravity-claude-proxy']?.required} required
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+                
+                {versionInfo.hasUpdates && (
+                  <div className="pt-2 border-t border-border">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-muted-foreground">Updates available</span>
+                      <button
+                        onClick={fetchVersionInfo}
+                        disabled={checkingUpdates}
+                        className="flex items-center gap-2 px-3 py-1.5 text-xs bg-green-500/20 text-green-500 rounded-lg hover:bg-green-500/30 transition-colors disabled:opacity-50"
+                      >
+                        <Download size={14} />
+                        {checkingUpdates ? 'Checking...' : 'Check Again'}
+                      </button>
+                    </div>
+                    <p className="mt-2 text-xs text-muted-foreground">
+                      Use the floating notification to update packages
+                    </p>
+                  </div>
+                )}
+              </>
+            ) : (
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-muted-foreground">Version</span>
+                <button
+                  onClick={fetchVersionInfo}
+                  disabled={checkingUpdates}
+                  className="text-xs text-primary hover:underline disabled:opacity-50"
+                >
+                  {checkingUpdates ? 'Checking...' : 'Check for updates'}
+                </button>
+              </div>
+            )}
+            
             <div className="flex items-center justify-between text-sm">
               <span className="text-muted-foreground">Proxy Endpoint</span>
               <span className="font-mono">localhost:8080</span>
