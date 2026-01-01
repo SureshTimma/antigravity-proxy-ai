@@ -64,14 +64,14 @@ antigravity-proxy-ai
 ```
 
 **That's it!**:
-1. ✅ The app will Start the proxy server on `http://localhost:8080`
-2. ✅ The app will Start the web UI on `http://localhost:3000`
+1. ✅ The app will Start the proxy server on `http://localhost:8642`
+2. ✅ The app will Start the web UI on `http://localhost:8643`
 3. ✅ The app will Open your browser automatically
 
 ### First Time Setup
 
 On first run, you'll need to add your Google account:
-1. Go to **Settings** in the web application `(http://localhost:3000)`
+1. Go to **Settings** in the web application `(http://localhost:8643)`
 2. Click **Add Account**
 3. Follow the browser authentication prompts
 
@@ -150,7 +150,7 @@ npm run dev
 │                                                              │
 │   ┌──────────────┐         ┌──────────────────────────┐     │
 │   │   Web UI     │ ──────► │  antigravity-claude-proxy │     │
-│   │  :3000       │         │         :8080             │     │
+│   │   :8643      │         │         :8642             │     │
 │   └──────────────┘         └──────────────────────────┘     │
 │         │                            │                       │
 │         ▼                            ▼                       │
@@ -174,10 +174,10 @@ sudo npm install -g antigravity-proxy-ai
 ```
 
 ### Port already in use
-Another application is using port 3000 or 8080. Close it or restart your computer.
+Another application is using port 8642 or 8643. Close it or restart your computer.
 
 ### Browser doesn't open automatically
-Manually open `http://localhost:3000` in your browser.
+Manually open `http://localhost:8643` in your browser.
 
 ---
 

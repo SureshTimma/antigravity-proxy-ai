@@ -3,7 +3,7 @@ import { NextResponse } from 'next/server';
 // GET - Fetch account limits from proxy
 export async function GET() {
   try {
-    const proxyPort = process.env.PROXY_PORT || '8080';
+    const proxyPort = process.env.PROXY_PORT || '8642';
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 10000);
     

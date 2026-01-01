@@ -169,7 +169,7 @@ export default function ChatInterface({
         console.error('Error:', error);
         const errorMessages = [...newMessages, { 
           role: 'assistant', 
-          content: `Error: ${error.message}. Make sure proxy is running on localhost:8080.`, 
+          content: `Error: ${error.message}. Make sure proxy is running on localhost:8642.`, 
           isError: true,
           id: Date.now()
         }];

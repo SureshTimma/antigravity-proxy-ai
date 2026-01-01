@@ -3,7 +3,6 @@
 const { spawn, execSync } = require('child_process');
 const path = require('path');
 const fs = require('fs');
-const net = require('net');
 
 const colors = {
   reset: '\x1b[0m',
@@ -33,30 +32,6 @@ ${colors.magenta}╔════════════════════
 ║                                                               ║
 ╚═══════════════════════════════════════════════════════════════╝${colors.reset}
 `);
-}
-
-// Check if a port is available
-function isPortAvailable(port) {
-  return new Promise((resolve) => {
-    const server = net.createServer();
-    server.once('error', () => resolve(false));
-    server.once('listening', () => {
-      server.close();
-      resolve(true);
-    });
-    server.listen(port, '127.0.0.1');
-  });
-}
-
-// Find an available port starting from the given port
-async function findAvailablePort(startPort, maxAttempts = 20) {
-  for (let i = 0; i < maxAttempts; i++) {
-    const port = startPort + i;
-    if (await isPortAvailable(port)) {
-      return port;
-    }
-  }
-  throw new Error(`Could not find available port starting from ${startPort}`);
 }
 
 function isProxyInstalled() {
@@ -97,18 +72,23 @@ function startProxy(port) {
   
   const isWindows = process.platform === 'win32';
   
+  // The proxy uses PORT environment variable, not --port flag
+  const env = { ...process.env, PORT: port.toString() };
+  
   let proxy;
   if (isWindows) {
     // On Windows, use windowsHide to prevent terminal window from appearing
-    proxy = spawn('cmd.exe', ['/c', `antigravity-claude-proxy start --port ${port}`], {
+    proxy = spawn('cmd.exe', ['/c', 'antigravity-claude-proxy start'], {
       stdio: 'ignore',
       detached: false,
       windowsHide: true,
+      env,
     });
   } else {
-    proxy = spawn('sh', ['-c', `antigravity-claude-proxy start --port ${port}`], {
+    proxy = spawn('sh', ['-c', 'antigravity-claude-proxy start'], {
       stdio: 'ignore',
       detached: true,
+      env,
     });
     proxy.unref();
   }
@@ -203,24 +183,9 @@ async function main() {
     process.exit(1);
   }
 
-  // Find available ports BEFORE starting anything
-  log('  → Finding available ports...', colors.cyan);
-  
-  let proxyPort, webPort;
-  try {
-    proxyPort = await findAvailablePort(8080);
-    webPort = await findAvailablePort(3000);
-    
-    if (proxyPort !== 8080) {
-      log(`  → Port 8080 in use, using ${proxyPort} for proxy`, colors.yellow);
-    }
-    if (webPort !== 3000) {
-      log(`  → Port 3000 in use, using ${webPort} for web UI`, colors.yellow);
-    }
-  } catch (error) {
-    log(`Error: ${error.message}`, colors.red);
-    process.exit(1);
-  }
+  // Fixed ports - unique to avoid common port conflicts
+  const proxyPort = 8642;
+  const webPort = 8643;
 
   // Step 2: Start proxy server
   const proxyProcess = startProxy(proxyPort);

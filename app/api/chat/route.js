@@ -2,7 +2,7 @@ export async function POST(request) {
   try {
     const body = await request.json();
     const { messages, model = 'claude-sonnet-4-5-thinking' } = body;
-    const proxyPort = process.env.PROXY_PORT || '8080';
+    const proxyPort = process.env.PROXY_PORT || '8642';
 
     const response = await fetch(`http://localhost:${proxyPort}/v1/messages`, {
       method: 'POST',

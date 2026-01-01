@@ -830,7 +830,7 @@ export default function SettingsView({ onAccountAction, onSendInput, onStartChat
             
             <div className="flex items-center justify-between text-sm">
               <span className="text-muted-foreground">Proxy Endpoint</span>
-              <span className="font-mono">localhost:8080</span>
+              <span className="font-mono">localhost:8642</span>
             </div>
             <div className="pt-2">
               <a

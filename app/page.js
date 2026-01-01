@@ -30,7 +30,7 @@ export default function Home() {
   const [selectedModel, setSelectedModel] = useState('');
   const [isModelDropdownOpen, setIsModelDropdownOpen] = useState(false);
   const [models, setModels] = useState([]);
-  const [proxyPort, setProxyPort] = useState(8080);
+  const [proxyPort, setProxyPort] = useState(8642);
   
   // Chat history state
   const [activeChatId, setActiveChatId] = useState(null);

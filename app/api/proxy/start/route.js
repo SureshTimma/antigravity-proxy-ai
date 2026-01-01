@@ -9,8 +9,8 @@ export async function POST(request) {
   }
 
   try {
-    // Explicitly set PORT to 8080 to avoid conflict with Next.js (which sets PORT env var)
-    const env = { ...process.env, PORT: '8080' };
+    // Explicitly set PORT to 8642 to avoid conflict with Next.js (which sets PORT env var)
+    const env = { ...process.env, PORT: '8642' };
     proxyProcess = spawn('antigravity-claude-proxy', ['start'], { shell: true, env });
 
     proxyProcess.stdout.on('data', (data) => {
