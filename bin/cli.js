@@ -132,10 +132,12 @@ async function startWebUI(webPort, proxyPort) {
     });
   }
 
-  // Build if .next doesn't exist
+  // Build if .next doesn't exist - skip this check since we ship pre-built
+  // The .next folder is included in the npm package
   const nextPath = path.join(packageDir, '.next');
   if (!fs.existsSync(nextPath)) {
-    log('  ↓ Building application (first run)...', colors.yellow);
+    log('  ⚠ Build folder missing, this should not happen with npm install', colors.yellow);
+    log('  ↓ Building application...', colors.yellow);
     execSync('npm run build', { 
       cwd: packageDir, 
       stdio: 'inherit' 

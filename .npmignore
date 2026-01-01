@@ -1,5 +1,4 @@
-# Build outputs - rebuild on first run
-.next/
+# Build outputs - DO NOT EXCLUDE .next, ship it pre-built
 out/
 
 # Development files
