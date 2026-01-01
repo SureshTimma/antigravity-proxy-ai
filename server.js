@@ -7,7 +7,8 @@ const pty = require('node-pty');
 const os = require('os');
 
 const dev = process.env.NODE_ENV !== 'production';
-const port = 3000;
+const port = parseInt(process.env.PORT, 10) || 3000;
+const proxyPort = parseInt(process.env.PROXY_PORT, 10) || 8080;
 const app = next({ dev });
 const handle = app.getRequestHandler();
 
@@ -31,7 +32,7 @@ app.prepare().then(() => {
           cols: 80,
           rows: 24,
           cwd: process.cwd(),
-          env: process.env
+          env: { ...process.env, PROXY_PORT: proxyPort.toString() }
         });
 
         // Send output to client

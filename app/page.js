@@ -29,10 +29,23 @@ export default function Home() {
   const [selectedModel, setSelectedModel] = useState('');
   const [isModelDropdownOpen, setIsModelDropdownOpen] = useState(false);
   const [models, setModels] = useState([]);
+  const [proxyPort, setProxyPort] = useState(8080);
   
   // Chat history state
   const [activeChatId, setActiveChatId] = useState(null);
   const [activeChatMessages, setActiveChatMessages] = useState([]);
+
+  // Fetch proxy port configuration
+  useEffect(() => {
+    fetch('/api/config')
+      .then(res => res.json())
+      .then(data => {
+        if (data.proxyPort) {
+          setProxyPort(data.proxyPort);
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   // Check if proxy server is running and fetch models
   const checkProxyConnection = useCallback(async () => {
@@ -42,7 +55,7 @@ export default function Home() {
       const timeoutId = setTimeout(() => controller.abort(), 3000);
       
       // First check health endpoint
-      const healthResponse = await fetch('http://localhost:8080/health', {
+      const healthResponse = await fetch(`http://localhost:${proxyPort}/health`, {
         method: 'GET',
         headers: { 'x-api-key': 'test' },
         signal: controller.signal,
@@ -56,7 +69,7 @@ export default function Home() {
       }
       
       // Then fetch models
-      const response = await fetch('http://localhost:8080/v1/models', {
+      const response = await fetch(`http://localhost:${proxyPort}/v1/models`, {
         method: 'GET',
         headers: { 'x-api-key': 'test' },
         signal: controller.signal,
@@ -103,7 +116,7 @@ export default function Home() {
     } finally {
       setIsChecking(false);
     }
-  }, [selectedModel]);
+  }, [selectedModel, proxyPort]);
 
   // Format model ID to display name
   const formatModelName = (modelId) => {

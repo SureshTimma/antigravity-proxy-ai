@@ -3,10 +3,11 @@ import { NextResponse } from 'next/server';
 // GET - Fetch account limits from proxy
 export async function GET() {
   try {
+    const proxyPort = process.env.PROXY_PORT || '8080';
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 10000);
     
-    const response = await fetch('http://localhost:8080/account-limits', {
+    const response = await fetch(`http://localhost:${proxyPort}/account-limits`, {
       method: 'GET',
       headers: { 'x-api-key': 'test' },
       signal: controller.signal,

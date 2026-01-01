@@ -3,6 +3,7 @@
 const { spawn, execSync } = require('child_process');
 const path = require('path');
 const fs = require('fs');
+const net = require('net');
 
 const colors = {
   reset: '\x1b[0m',
@@ -32,6 +33,30 @@ ${colors.magenta}╔════════════════════
 ║                                                               ║
 ╚═══════════════════════════════════════════════════════════════╝${colors.reset}
 `);
+}
+
+// Check if a port is available
+function isPortAvailable(port) {
+  return new Promise((resolve) => {
+    const server = net.createServer();
+    server.once('error', () => resolve(false));
+    server.once('listening', () => {
+      server.close();
+      resolve(true);
+    });
+    server.listen(port);
+  });
+}
+
+// Find an available port starting from the given port
+async function findAvailablePort(startPort, maxAttempts = 10) {
+  for (let i = 0; i < maxAttempts; i++) {
+    const port = startPort + i;
+    if (await isPortAvailable(port)) {
+      return port;
+    }
+  }
+  throw new Error(`Could not find available port starting from ${startPort}`);
 }
 
 function checkCommand(command) {
@@ -76,34 +101,27 @@ async function installProxy() {
   }
 }
 
-function startProxy() {
+function startProxy(port) {
   logStep('2/4', 'Starting proxy server...');
   
   const isWindows = process.platform === 'win32';
-  
-  let proxy;
-  if (isWindows) {
-    // On Windows, use start /B to run in background without new window
-    proxy = spawn('cmd', ['/c', 'start', '/B', 'antigravity-claude-proxy', 'start'], {
-      stdio: 'ignore',
-      detached: true,
-      shell: true,
-      windowsHide: true,
-    });
-  } else {
-    proxy = spawn('antigravity-claude-proxy', ['start'], {
-      stdio: 'ignore',
-      detached: true,
-      shell: true,
-    });
-  }
+  const command = isWindows ? 'powershell' : 'sh';
+  const args = isWindows 
+    ? ['-ExecutionPolicy', 'Bypass', '-Command', `antigravity-claude-proxy start --port ${port}`]
+    : ['-c', `antigravity-claude-proxy start --port ${port}`];
+
+  const proxy = spawn(command, args, {
+    stdio: 'ignore',
+    detached: true,
+    shell: false,
+  });
 
   proxy.unref();
-  log('  ✓ Proxy server starting on http://localhost:8080', colors.green);
+  log(`  ✓ Proxy server starting on http://localhost:${port}`, colors.green);
   return proxy;
 }
 
-async function startWebUI() {
+async function startWebUI(webPort, proxyPort) {
   logStep('3/4', 'Starting web interface...');
   
   const packageDir = path.resolve(__dirname, '..');
@@ -128,28 +146,33 @@ async function startWebUI() {
     });
   }
 
-  log('  ✓ Starting server on http://localhost:3000', colors.green);
+  log(`  ✓ Starting server on http://localhost:${webPort}`, colors.green);
   
-  // Start the Next.js server
+  // Start the Next.js server with custom port and proxy port env
   const server = spawn('node', ['server.js'], {
     cwd: packageDir,
     stdio: 'inherit',
     shell: true,
+    env: {
+      ...process.env,
+      PORT: webPort.toString(),
+      PROXY_PORT: proxyPort.toString(),
+    },
   });
 
   return server;
 }
 
-function openBrowser() {
+function openBrowser(port) {
   logStep('4/4', 'Opening browser...');
   
-  const url = 'http://localhost:3000';
+  const url = `http://localhost:${port}`;
   const platform = process.platform;
   
   setTimeout(() => {
     try {
       if (platform === 'win32') {
-        execSync(`start "" "${url}"`, { shell: true, stdio: 'ignore' });
+        execSync(`start ${url}`, { shell: true, stdio: 'ignore' });
       } else if (platform === 'darwin') {
         execSync(`open ${url}`, { stdio: 'ignore' });
       } else {
@@ -178,24 +201,43 @@ async function main() {
     process.exit(1);
   }
 
+  // Find available ports
+  log('  → Finding available ports...', colors.cyan);
+  
+  let proxyPort, webPort;
+  try {
+    proxyPort = await findAvailablePort(8080);
+    webPort = await findAvailablePort(3000);
+    
+    if (proxyPort !== 8080) {
+      log(`  → Port 8080 in use, using ${proxyPort} for proxy`, colors.yellow);
+    }
+    if (webPort !== 3000) {
+      log(`  → Port 3000 in use, using ${webPort} for web UI`, colors.yellow);
+    }
+  } catch (error) {
+    log(`Error: ${error.message}`, colors.red);
+    process.exit(1);
+  }
+
   // Step 2: Start proxy server
-  startProxy();
+  startProxy(proxyPort);
 
   // Wait a bit for proxy to start
   await new Promise(resolve => setTimeout(resolve, 2000));
 
   // Step 3: Start web UI
-  const server = await startWebUI();
+  const server = await startWebUI(webPort, proxyPort);
 
   // Step 4: Open browser
-  openBrowser();
+  openBrowser(webPort);
 
   console.log(`
 ${colors.green}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${colors.reset}
   ${colors.bright}Antigravity Proxy AI is running!${colors.reset}
   
-  ${colors.cyan}Web UI:${colors.reset}    http://localhost:3000
-  ${colors.cyan}Proxy:${colors.reset}     http://localhost:8080
+  ${colors.cyan}Web UI:${colors.reset}    http://localhost:${webPort}
+  ${colors.cyan}Proxy:${colors.reset}     http://localhost:${proxyPort}
   
   Press ${colors.yellow}Ctrl+C${colors.reset} to stop
 ${colors.green}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${colors.reset}
