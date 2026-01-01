@@ -44,12 +44,12 @@ function isPortAvailable(port) {
       server.close();
       resolve(true);
     });
-    server.listen(port);
+    server.listen(port, '127.0.0.1');
   });
 }
 
 // Find an available port starting from the given port
-async function findAvailablePort(startPort, maxAttempts = 10) {
+async function findAvailablePort(startPort, maxAttempts = 20) {
   for (let i = 0; i < maxAttempts; i++) {
     const port = startPort + i;
     if (await isPortAvailable(port)) {
@@ -57,15 +57,6 @@ async function findAvailablePort(startPort, maxAttempts = 10) {
     }
   }
   throw new Error(`Could not find available port starting from ${startPort}`);
-}
-
-function checkCommand(command) {
-  try {
-    execSync(`${command} --version`, { stdio: 'ignore' });
-    return true;
-  } catch {
-    return false;
-  }
 }
 
 function isProxyInstalled() {
@@ -105,18 +96,23 @@ function startProxy(port) {
   logStep('2/4', 'Starting proxy server...');
   
   const isWindows = process.platform === 'win32';
-  const command = isWindows ? 'powershell' : 'sh';
-  const args = isWindows 
-    ? ['-ExecutionPolicy', 'Bypass', '-Command', `antigravity-claude-proxy start --port ${port}`]
-    : ['-c', `antigravity-claude-proxy start --port ${port}`];
+  
+  let proxy;
+  if (isWindows) {
+    // On Windows, use windowsHide to prevent terminal window from appearing
+    proxy = spawn('cmd.exe', ['/c', `antigravity-claude-proxy start --port ${port}`], {
+      stdio: 'ignore',
+      detached: false,
+      windowsHide: true,
+    });
+  } else {
+    proxy = spawn('sh', ['-c', `antigravity-claude-proxy start --port ${port}`], {
+      stdio: 'ignore',
+      detached: true,
+    });
+    proxy.unref();
+  }
 
-  const proxy = spawn(command, args, {
-    stdio: 'ignore',
-    detached: true,
-    shell: false,
-  });
-
-  proxy.unref();
   log(`  ✓ Proxy server starting on http://localhost:${port}`, colors.green);
   return proxy;
 }
@@ -149,10 +145,10 @@ async function startWebUI(webPort, proxyPort) {
   log(`  ✓ Starting server on http://localhost:${webPort}`, colors.green);
   
   // Start the Next.js server with custom port and proxy port env
-  const server = spawn('node', ['server.js'], {
+  // Don't use shell: true to avoid the deprecation warning
+  const server = spawn(process.execPath, ['server.js'], {
     cwd: packageDir,
     stdio: 'inherit',
-    shell: true,
     env: {
       ...process.env,
       PORT: webPort.toString(),
@@ -172,17 +168,20 @@ function openBrowser(port) {
   setTimeout(() => {
     try {
       if (platform === 'win32') {
-        execSync(`start ${url}`, { shell: true, stdio: 'ignore' });
+        spawn('cmd.exe', ['/c', 'start', '', url], { 
+          stdio: 'ignore',
+          windowsHide: true,
+        });
       } else if (platform === 'darwin') {
-        execSync(`open ${url}`, { stdio: 'ignore' });
+        spawn('open', [url], { stdio: 'ignore' });
       } else {
-        execSync(`xdg-open ${url}`, { stdio: 'ignore' });
+        spawn('xdg-open', [url], { stdio: 'ignore' });
       }
       log('  ✓ Browser opened', colors.green);
     } catch {
       log(`  → Open ${url} in your browser`, colors.yellow);
     }
-  }, 2000);
+  }, 3000);
 }
 
 async function main() {
@@ -201,7 +200,7 @@ async function main() {
     process.exit(1);
   }
 
-  // Find available ports
+  // Find available ports BEFORE starting anything
   log('  → Finding available ports...', colors.cyan);
   
   let proxyPort, webPort;
@@ -221,10 +220,10 @@ async function main() {
   }
 
   // Step 2: Start proxy server
-  startProxy(proxyPort);
+  const proxyProcess = startProxy(proxyPort);
 
   // Wait a bit for proxy to start
-  await new Promise(resolve => setTimeout(resolve, 2000));
+  await new Promise(resolve => setTimeout(resolve, 3000));
 
   // Step 3: Start web UI
   const server = await startWebUI(webPort, proxyPort);
@@ -246,6 +245,9 @@ ${colors.green}━━━━━━━━━━━━━━━━━━━━━�
   // Handle exit
   process.on('SIGINT', () => {
     console.log(`\n${colors.yellow}Shutting down...${colors.reset}`);
+    if (proxyProcess && !proxyProcess.killed) {
+      proxyProcess.kill();
+    }
     server.kill();
     process.exit(0);
   });
