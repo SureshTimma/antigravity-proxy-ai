@@ -287,21 +287,10 @@ export default function Home() {
     setActiveChatMessages([]);
     setActiveView('chat');
     
-    // Clear terminal output for fresh detection, reset connection state
-    setTerminalOutput('');
-    connectionCheckRef.current = false;
-    
-    // If not connected, restart proxy; otherwise just ensure it's running
-    if (terminalRef.current) {
-      terminalRef.current.write('\x03'); // Cancel any running command
-      setTimeout(() => {
-        // Always restart proxy to ensure clean state
-        setIsConnected(false);
-        terminalRef.current.runCommand('$env:PORT=8642; antigravity-claude-proxy start');
-        // Terminal output detection will trigger connection check when server is ready
-      }, 300);
-    }
-  }, []);
+    // Always try to check connection first - proxy might already be running
+    // The checkProxyConnection will handle retries and update state
+    checkProxyConnection(0);
+  }, [checkProxyConnection]);
 
   const handleChatSelect = useCallback((chat) => {
     setActiveChatId(chat.id);
@@ -311,19 +300,9 @@ export default function Home() {
     }
     setActiveView('chat');
     
-    // Ensure proxy is running for this chat
-    if (!isConnected && terminalRef.current) {
-      // Clear terminal output for fresh detection, reset connection state
-      setTerminalOutput('');
-      connectionCheckRef.current = false;
-      
-      terminalRef.current.write('\x03'); // Cancel any running command
-      setTimeout(() => {
-        terminalRef.current.runCommand('$env:PORT=8642; antigravity-claude-proxy start');
-        // Terminal output detection will trigger connection check when server is ready
-      }, 300);
-    }
-  }, [isConnected]);
+    // Always try to check connection - proxy might already be running
+    checkProxyConnection(0);
+  }, [checkProxyConnection]);
 
   const handleAccountAction = useCallback((command, action) => {
     // Run command in terminal but don't switch view

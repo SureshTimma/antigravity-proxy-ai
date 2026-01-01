@@ -20,9 +20,18 @@ export default function WebTerminal({ onRef, initialCommand, isVisible, onOutput
     if (isVisible && fitAddonRef.current && termRef.current) {
         // Slight delay to ensure DOM is rendered before fitting
         setTimeout(() => {
-            fitAddonRef.current.fit();
-            const { cols, rows } = termRef.current;
-            socketRef.current?.emit('terminal:resize', { cols, rows });
+            try {
+              if (fitAddonRef.current && termRef.current && terminalRef.current) {
+                fitAddonRef.current.fit();
+                const cols = termRef.current.cols;
+                const rows = termRef.current.rows;
+                if (cols && rows) {
+                  socketRef.current?.emit('terminal:resize', { cols, rows });
+                }
+              }
+            } catch (e) {
+              console.warn('[WebTerminal] Fit error:', e);
+            }
         }, 50);
     }
   }, [isVisible]);
@@ -164,11 +173,15 @@ export default function WebTerminal({ onRef, initialCommand, isVisible, onOutput
     
     // Handle resize
     const handleResize = () => {
-        if (terminalRef.current) {
+        try {
+          if (terminalRef.current && term.cols && term.rows) {
             fitAddon.fit();
             const dims = { cols: term.cols, rows: term.rows };
             console.log('[WebTerminal] Resize:', dims);
             socket.emit('terminal:resize', dims);
+          }
+        } catch (e) {
+          console.warn('[WebTerminal] Resize error:', e);
         }
     };
     
