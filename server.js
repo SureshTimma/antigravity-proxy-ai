@@ -60,11 +60,14 @@ process.on('SIGTERM', () => {
   process.exit(0);
 });
 
-// Start proxy first
-console.log(`Starting proxy server on http://localhost:${proxyPort}...`);
-startProxyServer();
+// Start proxy only in development mode (production CLI handles it separately)
+if (dev) {
+  console.log(`Starting proxy server on http://localhost:${proxyPort}...`);
+  startProxyServer();
+}
 
-// Wait a bit for proxy to start, then start Next.js
+// Wait a bit for proxy to start (in dev mode), then start Next.js
+const startDelay = dev ? 2000 : 0;
 setTimeout(() => {
   app.prepare().then(() => {
   const server = express();
