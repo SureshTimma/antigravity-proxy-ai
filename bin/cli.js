@@ -80,16 +80,23 @@ function startProxy() {
   logStep('2/4', 'Starting proxy server...');
   
   const isWindows = process.platform === 'win32';
-  const command = isWindows ? 'powershell' : 'sh';
-  const args = isWindows 
-    ? ['-ExecutionPolicy', 'Bypass', '-Command', 'antigravity-claude-proxy start']
-    : ['-c', 'antigravity-claude-proxy start'];
-
-  const proxy = spawn(command, args, {
-    stdio: 'ignore',
-    detached: true,
-    shell: false,
-  });
+  
+  let proxy;
+  if (isWindows) {
+    // On Windows, use start /B to run in background without new window
+    proxy = spawn('cmd', ['/c', 'start', '/B', 'antigravity-claude-proxy', 'start'], {
+      stdio: 'ignore',
+      detached: true,
+      shell: true,
+      windowsHide: true,
+    });
+  } else {
+    proxy = spawn('antigravity-claude-proxy', ['start'], {
+      stdio: 'ignore',
+      detached: true,
+      shell: true,
+    });
+  }
 
   proxy.unref();
   log('  ✓ Proxy server starting on http://localhost:8080', colors.green);
@@ -142,7 +149,7 @@ function openBrowser() {
   setTimeout(() => {
     try {
       if (platform === 'win32') {
-        execSync(`start ${url}`, { shell: true, stdio: 'ignore' });
+        execSync(`start "" "${url}"`, { shell: true, stdio: 'ignore' });
       } else if (platform === 'darwin') {
         execSync(`open ${url}`, { stdio: 'ignore' });
       } else {
