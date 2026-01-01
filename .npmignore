@@ -1,0 +1,22 @@
+# Build outputs - rebuild on first run
+.next/
+out/
+
+# Development files
+*.log
+npm-debug.log*
+.DS_Store
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Testing
+coverage/
+.nyc_output/
+
+# Misc
+*.local
+.env*.local
