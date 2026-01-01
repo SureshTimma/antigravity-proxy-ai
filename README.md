@@ -1,36 +1,124 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# 🚀 Antigravity Proxy AI
 
-## Getting Started
+A modern, sleek web interface for managing and chatting with Claude AI through the [Antigravity Claude Proxy](https://github.com/badri-s2001/antigravity-claude-proxy).
 
-First, run the development server:
+![Next.js](https://img.shields.io/badge/Next.js-16.1.1-black?logo=next.js)
+![React](https://img.shields.io/badge/React-19-blue?logo=react)
+![Tailwind CSS](https://img.shields.io/badge/Tailwind-v4-38B2AC?logo=tailwind-css)
+![License](https://img.shields.io/badge/License-MIT-green)
+
+## ✨ Features
+
+- 🎨 **Modern Dark UI** - Clean, ChatGPT-style interface with smooth animations
+- 💬 **Chat Interface** - Full conversation support with Claude models
+- 🔄 **Model Selector** - Switch between different Claude models easily
+- 📊 **Usage Tracking** - View rate limits and usage per account
+- 👥 **Account Management** - Add/remove Claude accounts from Settings
+- 🖥️ **Integrated Terminal** - Built-in terminal for proxy management
+- 💾 **Chat History** - Persistent chat history stored locally
+- 🌐 **Real-time Status** - Connection status indicator with auto-restart
+
+## 📸 Screenshots
+
+*Coming soon*
+
+## 🛠️ Prerequisites
+
+Before running this app, you need:
+
+1. **Node.js** (v18 or higher)
+2. **Antigravity Claude Proxy** installed and configured
+   ```bash
+   npm install -g antigravity-claude-proxy
+   ```
+3. At least one authenticated Claude account
+
+## 🚀 Quick Start
+
+### 1. Clone the repository
+
+```bash
+git clone https://github.com/SureshTimma/antigravity-proxy-ai.git
+cd antigravity-proxy-ai
+```
+
+### 2. Install dependencies
+
+```bash
+npm install
+```
+
+### 3. Run the development server
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### 4. Open in browser
 
-You can start editing the page by modifying `app/page.js`. The page auto-updates as you edit the file.
+Navigate to [http://localhost:3000](http://localhost:3000)
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+The app will automatically start the Antigravity Claude Proxy when you open a new chat.
 
-## Learn More
+## 📦 Production Build
 
-To learn more about Next.js, take a look at the following resources:
+```bash
+npm run build
+npm start
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## 🏗️ Project Structure
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```
+antigravity-proxy-ai/
+├── app/
+│   ├── api/              # API routes for proxy communication
+│   │   ├── chat/         # Chat streaming endpoint
+│   │   └── proxy/        # Proxy management endpoints
+│   ├── components/       # React components
+│   │   ├── ChatInterface.js
+│   │   ├── Sidebar.js
+│   │   ├── SettingsView.js
+│   │   └── WebTerminal.js
+│   ├── lib/              # Utility functions
+│   ├── globals.css       # Global styles
+│   ├── layout.js         # Root layout
+│   └── page.js           # Main page
+├── public/               # Static assets
+├── server.js             # Custom server for Socket.io
+└── package.json
+```
 
-## Deploy on Vercel
+## ⚙️ Configuration
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+The app connects to the Antigravity Claude Proxy at `localhost:8080` by default. This is configured in the API routes.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## 🤝 Contributing
+
+Contributions are welcome! Please feel free to submit a Pull Request.
+
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to the branch (`git push origin feature/AmazingFeature`)
+5. Open a Pull Request
+
+## 📝 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## 🙏 Acknowledgments
+
+- [Antigravity Claude Proxy](https://github.com/badri-s2001/antigravity-claude-proxy) - The CLI proxy tool this UI is built for
+- [Next.js](https://nextjs.org/) - The React framework
+- [Tailwind CSS](https://tailwindcss.com/) - Styling
+- [Lucide Icons](https://lucide.dev/) - Beautiful icons
+- [xterm.js](https://xtermjs.org/) - Terminal emulator
+
+## ⚠️ Disclaimer
+
+This project is for educational purposes. Please ensure you comply with Anthropic's terms of service when using Claude.
+
+---
+
+Made with ❤️ by [Suresh Timma](https://github.com/SureshTimma)
