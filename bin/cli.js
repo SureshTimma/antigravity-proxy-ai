@@ -111,16 +111,22 @@ async function startWebUI(webPort, proxyPort) {
     });
   }
 
-  // Build if .next doesn't exist - skip this check since we ship pre-built
-  // The .next folder is included in the npm package
+  // Check for production build - BUILD_ID is the key indicator
   const nextPath = path.join(packageDir, '.next');
-  if (!fs.existsSync(nextPath)) {
-    log('  ⚠ Build folder missing, this should not happen with npm install', colors.yellow);
-    log('  ↓ Building application...', colors.yellow);
-    execSync('npm run build', { 
-      cwd: packageDir, 
-      stdio: 'inherit' 
-    });
+  const buildIdPath = path.join(nextPath, 'BUILD_ID');
+  
+  if (!fs.existsSync(buildIdPath)) {
+    log('  ↓ Building application (first run, this may take a minute)...', colors.yellow);
+    try {
+      execSync('npm run build', { 
+        cwd: packageDir, 
+        stdio: 'inherit' 
+      });
+      log('  ✓ Build completed successfully', colors.green);
+    } catch (error) {
+      log('  ✗ Build failed', colors.red);
+      throw error;
+    }
   }
 
   log(`  ✓ Starting server on http://localhost:${webPort}`, colors.green);

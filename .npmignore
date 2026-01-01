@@ -1,4 +1,6 @@
 # Build outputs - DO NOT EXCLUDE .next, ship it pre-built
+# But exclude the cache folder (large development cache)
+.next/cache/
 out/
 
 # Development files
