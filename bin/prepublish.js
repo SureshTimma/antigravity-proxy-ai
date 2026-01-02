@@ -149,6 +149,35 @@ export const REQUIRED_VERSIONS = {
   console.log(`\n${colors.cyan}📦 Publishing to npm...${colors.reset}\n`);
   run('npm publish');
 
+  // Create GitHub Release using gh CLI
+  console.log(`\n${colors.cyan}🚀 Creating GitHub Release...${colors.reset}\n`);
+  const releaseNotes = `## What's New
+
+- Bundled with antigravity-claude-proxy@${claudeProxyVersion}
+
+### Installation
+
+\`\`\`bash
+npm install -g antigravity-proxy-ai@${newVersion}
+\`\`\`
+`;
+  
+  // Write release notes to temp file (to handle special characters)
+  const tempNotesPath = path.join(__dirname, '.release-notes.tmp');
+  fs.writeFileSync(tempNotesPath, releaseNotes, 'utf8');
+  
+  const ghSuccess = run(`gh release create v${newVersion} --title "v${newVersion}" --notes-file "${tempNotesPath}"`, { ignoreError: true });
+  
+  // Clean up temp file
+  try { fs.unlinkSync(tempNotesPath); } catch {}
+  
+  if (ghSuccess) {
+    console.log(`${colors.green}✓${colors.reset} GitHub Release created`);
+  } else {
+    console.log(`${colors.yellow}⚠${colors.reset} GitHub Release creation failed (gh CLI may not be installed)`);
+    console.log(`  Create manually at: https://github.com/SureshTimma/antigravity-proxy-ai/releases/new?tag=v${newVersion}`);
+  }
+
   console.log(`\n${colors.green}═══════════════════════════════════════════════════════════${colors.reset}`);
   console.log(`${colors.green}✓ Release v${newVersion} published successfully!${colors.reset}`);
   console.log(`${colors.green}═══════════════════════════════════════════════════════════${colors.reset}`);
