@@ -1,8 +1,7 @@
-// Required versions - Update these when you update your development environment
-// The website is tested and compatible with these versions
+// Required versions - Auto-updated by prepublish script
+// DO NOT EDIT MANUALLY - This is updated automatically before each publish
 
 export const REQUIRED_VERSIONS = {
-  // The version of antigravity-claude-proxy that this website is built for
-  // Users with lower versions will see an update notification
-  'antigravity-claude-proxy': '1.2.0'
+  // The version of antigravity-claude-proxy bundled with this release
+  'antigravity-claude-proxy': '1.2.3'
 };

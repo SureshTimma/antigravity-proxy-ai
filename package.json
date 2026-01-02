@@ -1,6 +1,6 @@
 {
   "name": "antigravity-proxy-ai",
-  "version": "1.0.23",
+  "version": "1.2.0",
   "description": "Modern web interface for Claude AI through Antigravity Claude Proxy",
   "author": "Suresh Timma",
   "license": "MIT",
@@ -30,6 +30,9 @@
     "build": "next build",
     "start": "NODE_ENV=production node server.js",
     "lint": "eslint",
+    "release": "node bin/prepublish.js",
+    "release:minor": "node bin/prepublish.js minor",
+    "release:major": "node bin/prepublish.js major",
     "postinstall": "node bin/postinstall.js || true"
   },
   "engines": {
